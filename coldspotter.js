@@ -58,7 +58,9 @@ window.onload = function() {
 	geocallback 					= function( geo ) {
 
 		var nearest 	= null,
-			distance	= 1000;
+			farthest	= null,
+			distanceN	= 1000,
+			distanceF	= 0;
 
 		allHotspots.results.forEach( function(coldspot) {
 
@@ -82,20 +84,31 @@ window.onload = function() {
 			var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
 			var d = R * c;
 
-			if( d < distance ) {
+			if( d < distanceN ) {
 
-				distance 	= d;
-				nearest 	= coldspot;
+				distanceN 			= d;
+				nearest 			= coldspot;
+				nearest.distance 	= d;
+
+			}
+
+			if( d > distanceF ) {
+
+				distanceF 			= d;
+				farthest 			= coldspot;
+				farthest.distance 	= d;
 
 			}
 
 		});
 
-		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested nearby coldspot</b>: " + nearest.locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + nearest.lat + "%2C" + nearest.lng + "'>Map</a></td></tr></table>";
+		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested nearest coldspot</b>: " + nearest.locName + " (" + nearest.distance.toFixed(2) + " km)</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + nearest.lat + "%2C" + nearest.lng + "'>Map</a></td></tr></table>";
+
+		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested farthest coldspot</b>: " + farthest.locName + " (" + farthest.distance.toFixed(2) + " km)</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + farthest.lat + "%2C" + farthest.lng + "'>Map</a></td></tr></table>";
 
 		var randomnumber = Math.floor(Math.random() * (allHotspots.results.length - 1)) + 0;
 
-		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested random coldspot</b>: " + allHotspots.results[randomnumber].locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[randomnumber].lat + "%2C" + allHotspots.results[randomnumber].lng + "'>Map</a></td></tr></table>";
+		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested random coldspot</b>: " + allHotspots.results[randomnumber].locName + " </td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[randomnumber].lat + "%2C" + allHotspots.results[randomnumber].lng + "'>Map</a></td></tr></table>";
 
 	};
 
