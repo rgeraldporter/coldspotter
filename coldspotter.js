@@ -23,11 +23,13 @@ allHotspots.callback = function( results ) {
 
 }
 
+
+
 J50Npi.getJSON( allHotspots.url, allHotspots.data, allHotspots.callback );
 
 window.onload = function() {
 
-	var hotspots, warmspots, coolspots, coldspots;
+	var hotspots, warmspots, coolspots, coldspots, geocallback;
 
 	hotspots 						= {};
 	hotspots.url 					= "http://ebird.org/ws1.1/ref/hotspot/region",
@@ -44,7 +46,7 @@ window.onload = function() {
 	coldspots 						= {};
 	coldspots.url 					= "http://ebird.org/ws1.1/ref/hotspot/region",
 	coldspots.data 					= { rtype: regionType, r: regionCode, fmt: 'json', back: 28 };
-	coldspots.cache 				= {};
+	coldspots.locations				= [];
 	coldspotter.dom 				= {};
 	coldspotter.dom.hotspotsHTML 	= document.getElementById( "coldspotter-hotspots" );
 	coldspotter.dom.warmspotsHTML 	= document.getElementById( "coldspotter-warmspots" );
@@ -52,6 +54,50 @@ window.onload = function() {
 	coldspotter.dom.coldspotsHTML 	= document.getElementById( "coldspotter-coldspots" );
 	coldspotter.dom.alertsHTML 		= document.getElementById( "coldspotter-alerts" );
 	coldspotter.dom.summaryHTML 	= document.getElementById( "coldspotter-summary" );
+	coldspotter.dom.suggestHTML 	= document.getElementById( "coldspotter-suggest" );
+	geocallback 					= function( geo ) {
+
+		var nearest 	= null,
+			distance	= 1000;
+
+		allHotspots.results.forEach( function(coldspot) {
+
+			Number.prototype.toRad = function() { return this * (Math.PI / 180); };
+
+			lat2 	= geo.coords.latitude;
+			lon2 	= geo.coords.longitude;
+			lat1 	= coldspot.lat;
+			lon1 	= coldspot.lng;
+
+			console.log(lat2-lat1);
+
+			var R 	= 6371; // km
+			var dLat = (lat2-lat1).toRad();
+			var dLon = (lon2-lon1).toRad();
+			var lat1 = lat1.toRad();
+			var lat2 = lat2.toRad();
+
+			var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+			        Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+			var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+			var d = R * c;
+
+			if( d < distance ) {
+
+				distance 	= d;
+				nearest 	= coldspot;
+
+			}
+
+		});
+
+		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested nearby coldspot</b>: " + nearest.locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + nearest.lat + "%2C" + nearest.lng + "'>Map</a></td></tr></table>";
+
+		var randomnumber = Math.floor(Math.random() * (allHotspots.results.length - 1)) + 0;
+
+		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested random coldspot</b>: " + allHotspots.results[randomnumber].locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[randomnumber].lat + "%2C" + allHotspots.results[randomnumber].lng + "'>Map</a></td></tr></table>";
+
+	};
 
 	coolspots.callback 				= function( coolspotResults ) {
 
@@ -82,13 +128,9 @@ window.onload = function() {
 		coldspotter.dom.coolspotsHTML.innerHTML = me.htmlResult;
 
 		// start over...
-
 		me.htmlResult = "<table>";
 
 		allHotspots.results.forEach( function(coldspot) {
-
-			if( !! warmspots.cache[coldspot.locID] || !! hotspots.cache[coldspot.locID] || !! coolspots.cache[coldspot.locID] )
-				return;
 
 			me.htmlResult += "<tr><td>" + coldspot.locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + coldspot.lat + "%2C" + coldspot.lng + "'>Map</a></td></tr>";
 
@@ -98,7 +140,9 @@ window.onload = function() {
 
 		coldspotter.dom.coldspotsHTML.innerHTML = me.htmlResult;
 
-		coldspotter.dom.summaryHTML.innerHTML += "<span style='color:red;'>" + Object.keys(hotspots.cache).length + " hot,</span> <span style='color:orange;'>" + Object.keys(warmspots.cache).length + " warm,</span> <span style='color:teal;'>" + Object.keys(coolspots.cache).length + " cool,</span> <span style='color:blue;'>" + allHotspots.results.length + " cold</span>"
+		coldspotter.dom.summaryHTML.innerHTML += "<span style='color:red;'>" + Object.keys(hotspots.cache).length + " hot,</span> <span style='color:orange;'>" + Object.keys(warmspots.cache).length + " warm,</span> <span style='color:teal;'>" + Object.keys(coolspots.cache).length + " cool,</span> <span style='color:blue;'>" + allHotspots.results.length + " cold</span>";
+
+		navigator.geolocation.getCurrentPosition( geocallback );
 
 	}
 
