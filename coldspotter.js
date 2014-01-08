@@ -1,9 +1,9 @@
-function $_GET(q,s)	{
+function $_GET( q, s )	{
 
-    s = s ? s : window.location.search;
-    var re = new RegExp('&'+q+'(?:=([^&]*))?(?=&|$)','i');
+    s 		= s ? s : window.location.search;
+    var re 	= new RegExp( '&' + q + '(?:=([^&]*))?(?=&|$)', 'i' );
     
-    return (s=s.replace(/^\?/,'&').match(re)) ? (typeof s[1] == 'undefined' ? '' : decodeURIComponent(s[1])) : undefined;
+    return ( s = s.replace(/^\?/, '&').match(re) ) ? ( typeof s[1] == 'undefined' ? '' : decodeURIComponent(s[1]) ) : undefined;
     
 }
 
@@ -55,6 +55,9 @@ window.onload = function() {
 	coldspotter.dom.alertsHTML 		= document.getElementById( "coldspotter-alerts" );
 	coldspotter.dom.summaryHTML 	= document.getElementById( "coldspotter-summary" );
 	coldspotter.dom.suggestHTML 	= document.getElementById( "coldspotter-suggest" );
+	coldspotter.dom.suggestHTMLH1 	= document.getElementById( "coldspotter-summary-h1" );
+
+	
 	geocallback 					= function( geo ) {
 
 		var nearest 	= null,
@@ -71,20 +74,17 @@ window.onload = function() {
 			lat1 	= coldspot.lat;
 			lon1 	= coldspot.lng;
 
-			console.log(lat2-lat1);
+			var R 		= 6371; // km
+			var dLat 	= (lat2-lat1).toRad();
+			var dLon 	= (lon2-lon1).toRad();
+			var lat1 	= lat1.toRad();
+			var lat2 	= lat2.toRad();
+			var a 		= Math.sin(dLat/2) * Math.sin(dLat/2) +
+							Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+			var c 		= 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+			var d 		= R * c;
 
-			var R 	= 6371; // km
-			var dLat = (lat2-lat1).toRad();
-			var dLon = (lon2-lon1).toRad();
-			var lat1 = lat1.toRad();
-			var lat2 = lat2.toRad();
-
-			var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-			        Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
-			var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-			var d = R * c;
-
-			if( d < distanceN ) {
+			/*if( d < distanceN ) {
 
 				distanceN 			= d;
 				nearest 			= coldspot;
@@ -98,17 +98,60 @@ window.onload = function() {
 				farthest 			= coldspot;
 				farthest.distance 	= d;
 
-			}
+			}*/
+
+			coldspot.distance = d;
 
 		});
 
-		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested nearest coldspot</b>: " + nearest.locName + " (" + nearest.distance.toFixed(2) + " km)</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + nearest.lat + "%2C" + nearest.lng + "'>Map</a></td></tr></table>";
+		allHotspots.results.sort( function( a, b ) {
+
+			if( a.distance < b.distance )
+				return -1;
+
+			else 
+				return 1;
+
+		});
+
+		/*coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested nearest coldspot</b>: " + nearest.locName + " (" + nearest.distance.toFixed(2) + " km)</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + nearest.lat + "%2C" + nearest.lng + "'>Map</a></td></tr></table>";
 
 		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested farthest coldspot</b>: " + farthest.locName + " (" + farthest.distance.toFixed(2) + " km)</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + farthest.lat + "%2C" + farthest.lng + "'>Map</a></td></tr></table>";
 
 		var randomnumber = Math.floor(Math.random() * (allHotspots.results.length - 1)) + 0;
 
-		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested random coldspot</b>: " + allHotspots.results[randomnumber].locName + " </td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[randomnumber].lat + "%2C" + allHotspots.results[randomnumber].lng + "'>Map</a></td></tr></table>";
+		coldspotter.dom.suggestHTML.innerHTML += "<table><tr><td><b style='color:green;'>Suggested random coldspot</b>: " + allHotspots.results[randomnumber].locName + " </td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[randomnumber].lat + "%2C" + allHotspots.results[randomnumber].lng + "'>Map</a></td></tr></table>";*/
+
+		var summaryTable	= "";
+
+		summaryTable += "<div class='bg-teal pvl black'><h1 class='title'>Suggested closest coldspots</h1>";
+
+		for( var i = 0; i < 3; i++ ) {
+
+			summaryTable += "<p class='thin'><a target='_blank' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[i].lat + "%2C" + allHotspots.results[i].lng + "'>" + allHotspots.results[i].locName + " (" + allHotspots.results[i].distance.toFixed(2) + " km)</a></p>";
+
+		}
+
+		summaryTable += "</div>";
+
+		summaryTable += "<div class='bg-aqua pvl black'><h1 class='title'>Suggested random coldspots</h1>";
+
+		for( var i = 0; i < 3; i++ ) {
+
+			randomnumber 	= Math.floor(Math.random() * (allHotspots.results.length - 1)) + 3;
+
+			if( !!! allHotspots.results[randomnumber] )
+				continue;
+
+			summaryTable 	+= "<p class='thin'><a target='_blank' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[randomnumber].lat + "%2C" + allHotspots.results[randomnumber].lng + "'>" + allHotspots.results[randomnumber].locName + " (" + allHotspots.results[randomnumber].distance.toFixed(2) + " km)</a></p>";
+
+		}
+
+		summaryTable += "</div>";
+
+		coldspotter.dom.suggestHTML.innerHTML = summaryTable;
+
+
 
 	};
 
@@ -153,7 +196,39 @@ window.onload = function() {
 
 		coldspotter.dom.coldspotsHTML.innerHTML = me.htmlResult;
 
-		coldspotter.dom.summaryHTML.innerHTML += "<span style='color:red;'>" + Object.keys(hotspots.cache).length + " hot,</span> <span style='color:orange;'>" + Object.keys(warmspots.cache).length + " warm,</span> <span style='color:teal;'>" + Object.keys(coolspots.cache).length + " cool,</span> <span style='color:blue;'>" + allHotspots.results.length + " cold</span>";
+		var totals = {
+
+			hot: 	Object.keys(hotspots.cache).length,
+			warm: 	Object.keys(warmspots.cache).length,
+			cool: 	Object.keys(coolspots.cache).length,
+			cold: 	allHotspots.results.length
+
+		};
+
+		var allTotal 	= totals.hot + totals.warm + totals.cool + totals.cold;
+
+		var summaryTable = "";
+
+		summaryTable += "<div class='bg-red pvl white' style='display:inline-block;width:25%;overflow:hidden;'><h1 class='title'>" + totals.hot + " hot</h1></div>";
+
+		summaryTable += "<div class='bg-orange pvl white' style='display:inline-block;width:25%;overflow:hidden;'><h1 class='title'>" + totals.warm + " warm</h1></div>";
+
+		summaryTable += "<div class='bg-aqua pvl white' style='display:inline-block;width:25%;overflow:hidden;'><h1 class='title'>" + totals.cool + " cool</h1></div>";
+
+		summaryTable += "<div class='bg-blue pvl white' style='display:inline-block;width:25%;overflow:hidden;'><h1 class='title'>" + totals.cold + " cold</h1></div>";
+
+		//summaryTable += "<div class='bg-olive pvl black' style='display:inline-block;width:100%;overflow:hidden;'><p class='title'>Total hotspots: 100</p></div>";
+
+		/*summaryTable += "<div class='bg-red pvl white' style='float:left;width:" + (( totals.hot / allTotal ) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.hot + " hot</h1></div>";
+
+		summaryTable += "<div class='bg-orange pvl white' style='float:left;width:" + ((totals.warm / allTotal) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.warm + " warm</h1></div>";
+
+		summaryTable += "<div class='bg-aqua pvl white' style='float:left;width:" + ((totals.cool / allTotal) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.cool + " cool</h1></div>";
+
+		summaryTable += "<div class='bg-blue pvl white' style='float:left;width:" + ((totals.cold / allTotal) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.cold + " cold</h1></div>";*/
+
+		coldspotter.dom.suggestHTMLH1.innerHTML		= "Summary for: " + regionCode;
+		coldspotter.dom.summaryHTML.innerHTML 		+= summaryTable;//"<span style='color:red;'>" + Object.keys(hotspots.cache).length + " hot,</span> <span style='color:orange;'>" + Object.keys(warmspots.cache).length + " warm,</span> <span style='color:teal;'>" + Object.keys(coolspots.cache).length + " cool,</span> <span style='color:blue;'>" + allHotspots.results.length + " cold</span>";
 
 		navigator.geolocation.getCurrentPosition( geocallback );
 
@@ -208,14 +283,14 @@ window.onload = function() {
 				if( allHotspots.results[i].locID == hotspot.locID )
 					allHotspots.results.splice( i, 1 );
 
-			}
+			}	
 
 		});
 
 		if( hotspotResults.length == 0 ) {
 
 			me.htmlResult += "<tr><td>No recent reports at any hotspots!</td></tr>";
-			coldspotter.dom.alertsHTML.innerHTML += "<b style='color:red;'>Cold county alert</b> No observation reports in the last week!"
+			coldspotter.dom.alertsHTML.innerHTML += "<div class='bg-blue pvl white'><h1 class='title' id=\"coldspotter-summary-h1\">Cold County Alert!</h1><p class='thin'>No observations have been posted for hotspot locations in this county for the past week.</p></div>";
 
 		}
 
