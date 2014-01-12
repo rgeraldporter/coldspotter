@@ -58,7 +58,7 @@ var assembleList		= function( geo ) {
 
 	});
 
-	var summaryTable	= "<div class='bg-navy pvl white'><h1 class='title' id=\"coldspotter-summary-h1\">Coldspots ordered by nearest</h1></div>";
+	var summaryTable	= "<div class='bg-navy pvl white'><h1 class='title' id=\"coldspotter-summary-h1\">Coldspots</h1></div>";
 
 	for( var i = 0; i < allHotspots.results.length; i++ ) {
 
