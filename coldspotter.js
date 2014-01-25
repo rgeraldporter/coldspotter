@@ -7,101 +7,273 @@ function $_GET( q, s )	{
     
 }
 
+
 var coldspotter, allHotspots, regionCode, regionType, regionUrl, geoUrl;
 
 coldspotter 		= {};
-regionUrl 			= "http://ebird.org/ws1.1/ref/hotspot/region";
-geoUrl 				= "http://ebird.org/ws1.1/ref/hotspot/geo"
-regionCode 			= $_GET("region") || null;
-regionType 			= $_GET("type") || "subnational2";
 allHotspots			= {};
-allHotspots.url		= regionCode ? regionUrl : geoUrl,  
 allHotspots.results = [];
 
-var assembleList		= function( geo ) {
+var CONFIG =	{
 
-	var nearest 	= null,
-		farthest	= null,
-		distanceN	= 1000,
-		distanceF	= 0;
+	regionType: 	$_GET("type") || "subnational2",
+	regionUrl: 		"http://ebird.org/ws1.1/ref/hotspot/region",
+	geoUrl: 		"http://ebird.org/ws1.1/ref/hotspot/geo",
+	radius: 		17,
+	hot: 			7,
+	warm: 			14,
+	cool: 			21,
+	cold: 			28
 
-	allHotspots.results.forEach( function(coldspot) {
+}
 
-		Number.prototype.toRad = function() { return this * (Math.PI / 180); };
+var coord 			= function( data ) {
 
-		lat2 	= geo.coords.latitude;
-		lon2 	= geo.coords.longitude;
-		lat1 	= coldspot.lat;
-		lon1 	= coldspot.lng;
+	this.lat 	= data.lat;
+	this.lng 	= data.lng;
 
-		var R 		= 6371; // km
-		var dLat 	= (lat2-lat1).toRad();
-		var dLon 	= (lon2-lon1).toRad();
-		var lat1 	= lat1.toRad();
-		var lat2 	= lat2.toRad();
-		var a 		= Math.sin(dLat/2) * Math.sin(dLat/2) +
-						Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
-		var c 		= 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-		var d 		= R * c;
+}
 
-		coldspot.distance = d;
+var spot 		= function( data ) {
 
-	});
+	this.regionCode			= [ data["countryCode"], data["subnational1Code"], data["subnational2Code"] ];
+	this.geo 				= new coord({ lat: data.lat, 	lng: data.lng });
+	this.id 				= data.locaID;
+	this.name 				= data.locName;
 
-	allHotspots.results.sort( function( a, b ) {
+}
 
-		if( a.distance < b.distance )
-			return -1;
+var hotspotGeoProxy = function( callback, days, geo ) {
 
-		else 
-			return 1;
+	var me  			= this;
 
-	});
+	this.url 			= CONFIG.geoUrl;
+	this.cache 			= {};
+	this.data			= { 
 
-	var summaryTable	= "<div class='bg-navy pvl white'><h1 class='title' id=\"coldspotter-summary-h1\">Coldspots</h1></div>";
+			lat: 		geo.coords.latitude, 
+			lng: 		geo.coords.longitude, 
+			dist: 		CONFIG.radius, 
+			fmt: 		'json' 
 
-	for( var i = 0; i < allHotspots.results.length; i++ ) {
+	};
 
-		var distance = allHotspots.results[i].distance > 50 ? "&gt;50" : allHotspots.results[i].distance.toFixed(1);
+	this.callback 		= function( results ) {
 
-		summaryTable += "<div class='bg-blue white pvs result distance'>" + distance + "<span class='thin km'>km</span></div><a target='_blank' class='bg-green white pvs result map-link' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[i].lat + "%2C" + allHotspots.results[i].lng + "'>MAP</a><a target='_blank' class='result-link thin pvs result navy bg-white hotspot' href='http://ebird.org/ebird/canada/hotspot/" + allHotspots.results[i].locID + "'>" + allHotspots.results[i].locName + "</a>";
+		callback( results, me )
 
-	}
+	};
 
-	coldspotter.dom.suggestHTML.innerHTML = summaryTable;
+	if( !!days )
+		this.data.back = days;
 
-};
+}
+
+var hotspotRegionalProxy 	= function( callback, days ) {
+
+	var me 				= this;
+
+	this.url 			= CONFIG.regionUrl;
+	this.data 			= { rtype: CONFIG.regionType, r: $_GET("region"), fmt: 'json' };
+	this.cache 			= {};
+	this.callback 		= function( results ) {
+
+		callback( results, me )
+
+	};
+
+	if( !!days )
+		this.data.back = days;
+
+}
 
 window.onload = function() {
 
-	var hotspots, warmspots, coolspots, coldspots, geocallback, geodata;
+	var hotspots, warmspots, coolspots, coldspots, geocallback;
 
 	coolspots 						= {};
 	hotspots 						= {};
 	warmspots 						= {};
 	coldspots 						= {};
 
-
 	var geocallback = function( geo ) {
 
-		geodata = geo;
+		var assembleList		= function( geo ) {
 
-		allHotspots.data 	= regionCode ? { rtype: regionType, r: regionCode, fmt: 'json' } : { lat: geo.coords.latitude, lng: geo.coords.longitude, dist: 17, fmt: 'json' };
-		
-		hotspots.url 					= allHotspots.url,
-		hotspots.data 					= regionCode ? { rtype: regionType, r: regionCode, fmt: 'json', back: 7 } : { lat: geo.coords.latitude, lng: geo.coords.longitude, dist: 17, back: 7, fmt: 'json' };
-		hotspots.cache 					= {};
-		
-		warmspots.url 					= allHotspots.url,
-		warmspots.data 					= regionCode ? { rtype: regionType, r: regionCode, fmt: 'json', back: 14 } : { lat: geo.coords.latitude, lng: geo.coords.longitude, dist: 17, back: 14, fmt: 'json' };
-		warmspots.cache 				= {};
-		coolspots.url 					= allHotspots.url,
-		coolspots.data 					= regionCode ? { rtype: regionType, r: regionCode, fmt: 'json', back: 21 } : { lat: geo.coords.latitude, lng: geo.coords.longitude, dist: 17, back: 21, fmt: 'json' };
-		coolspots.cache					= {};
-		
-		coldspots.url 					= allHotspots.url,
-		coldspots.data 					= regionCode ? { rtype: regionType, r: regionCode, fmt: 'json', back: 28 } : { lat: geo.coords.latitude, lng: geo.coords.longitude, dist: 17, back: 28, fmt: 'json' };
-		coldspots.locations				= [];
+			var totals = {
+
+				hot: 	Object.keys( hotspotProxy.cache ).length,
+				warm: 	Object.keys( warmspotProxy.cache ).length,
+				cool: 	Object.keys( coolspotProxy.cache ).length,
+				cold: 	allHotspots.results.length
+
+			};
+
+			var allTotal 	= totals.hot + totals.warm + totals.cool + totals.cold;
+
+			var summaryTable = "";
+
+			summaryTable += "<div class='bg-red pvl white summary-result'><h1 class='title'>" + totals.hot + " hot</h1></div>";
+
+			summaryTable += "<div class='bg-orange pvl white summary-result'><h1 class='title'>" + totals.warm + " warm</h1></div>";
+
+			summaryTable += "<div class='bg-aqua pvl white summary-result'><h1 class='title'>" + totals.cool + " cool</h1></div>";
+
+			summaryTable += "<div class='bg-blue pvl white summary-result'><h1 class='title'>" + totals.cold + " cold</h1></div>";
+
+			summaryTable += "";
+
+			coldspotter.dom.suggestHTMLH1.innerHTML		= "Summary for " + ( $_GET("region") || "20 km radius" );
+			coldspotter.dom.summaryHTML.innerHTML 		+= summaryTable;
+
+			var nearest 	= null,
+				farthest	= null,
+				distanceN	= 1000,
+				distanceF	= 0;
+
+			allHotspots.results.forEach( function(coldspot) {
+
+				Number.prototype.toRad = function() { return this * (Math.PI / 180); };
+
+				lat2 	= geo.coords.latitude;
+				lon2 	= geo.coords.longitude;
+				lat1 	= coldspot.lat;
+				lon1 	= coldspot.lng;
+
+				var R 		= 6371; // km
+				var dLat 	= (lat2-lat1).toRad();
+				var dLon 	= (lon2-lon1).toRad();
+				var lat1 	= lat1.toRad();
+				var lat2 	= lat2.toRad();
+				var a 		= Math.sin(dLat/2) * Math.sin(dLat/2) +
+								Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2); 
+				var c 		= 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+				var d 		= R * c;
+
+				coldspot.distance = d;
+
+			});
+
+			allHotspots.results.sort( function( a, b ) {
+
+				if( a.distance < b.distance )
+					return -1;
+
+				else 
+					return 1;
+
+			});
+
+			var summaryTable	= "<div class='bg-navy pvl white'><h1 class='title' id=\"coldspotter-summary-h1\">Coldspots</h1></div>";
+
+			for( var i = 0; i < allHotspots.results.length; i++ ) {
+
+				var distance = allHotspots.results[i].distance > 50 ? "&gt;50" : allHotspots.results[i].distance.toFixed(1);
+
+				summaryTable += "<div class='bg-blue white pvs result distance'>" + distance + "<span class='thin km'>km</span></div><a target='_blank' class='bg-green white pvs result map-link' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[i].lat + "%2C" + allHotspots.results[i].lng + "'>MAP</a><a target='_blank' class='result-link thin pvs result navy bg-white hotspot' href='http://ebird.org/ebird/canada/hotspot/" + allHotspots.results[i].locID + "'>" + allHotspots.results[i].locName + "</a>";
+
+			}
+
+			coldspotter.dom.suggestHTML.innerHTML = summaryTable;
+
+
+
+		};
+
+		var spotProxyCallback = function( results, proxy, callback ) {
+
+			var me = this;
+
+			results.forEach( function(hotspot) {
+				proxy.cache[ hotspot.locID ] = true;
+
+				for( var i = 0; i < allHotspots.results.length; i++ ) {
+
+					if( allHotspots.results[i].locID == hotspot.locID )
+						allHotspots.results.splice( i, 1 );
+
+				}	
+
+			});
+
+			callback();
+
+		};
+
+		var coldspotProxyCallback = function( results, proxy ) {
+
+			spotProxyCallback( results, proxy, function() {
+
+				assembleList( geo );
+
+			});
+
+		}
+
+		var coolspotProxyCallback = function( results, proxy ) {
+
+			spotProxyCallback( results, proxy, function() {
+
+				J50Npi.getJSON( coldspotProxy.url, coldspotProxy.data, coldspotProxy.callback );
+
+			});
+
+		}
+
+		var warmspotProxyCallback = function( results, proxy ) {
+
+			spotProxyCallback( results, proxy, function() {
+
+				J50Npi.getJSON( coolspotProxy.url, coolspotProxy.data, coolspotProxy.callback );
+
+			});
+
+		}
+
+		var hotspotProxyCallback = function( results, proxy ) {
+
+			spotProxyCallback( results, proxy, function() {
+
+				J50Npi.getJSON( warmspotProxy.url, warmspotProxy.data, warmspotProxy.callback );
+
+			});
+
+			if( results.length == 0 ) {
+
+				coldspotter.dom.alertsHTML.innerHTML += "<div class='bg-blue pvl white'><h1 class='title' id=\"coldspotter-summary-h1\">Cold County Alert!</h1><p class='thin'>No observations have been posted for hotspot locations in this county for the past week.</p></div>";
+
+			}
+
+		}
+
+		var allhotspotProxyCallback = function( results, proxy ) {
+
+			allHotspots.results = results;
+
+			J50Npi.getJSON( hotspotProxy.url, hotspotProxy.data, hotspotProxy.callback );
+
+		}
+
+		if( $_GET("region") ) {
+
+			var coldspotProxy 	= new hotspotRegionalProxy( coldspotProxyCallback, CONFIG.cold );
+			var coolspotProxy 	= new hotspotRegionalProxy( coolspotProxyCallback, CONFIG.cool );
+			var warmspotProxy 	= new hotspotRegionalProxy( warmspotProxyCallback, CONFIG.warm );
+			var hotspotProxy 	= new hotspotRegionalProxy( hotspotProxyCallback, CONFIG.hot );
+			var allhotspotProxy = new hotspotRegionalProxy( allhotspotProxyCallback );
+
+		} else {
+
+			var coldspotProxy 	= new hotspotGeoProxy( coldspotProxyCallback, CONFIG.cold, geo );
+			var coolspotProxy 	= new hotspotGeoProxy( coolspotProxyCallback, CONFIG.cool, geo );
+			var warmspotProxy 	= new hotspotGeoProxy( warmspotProxyCallback, CONFIG.warm, geo );
+			var hotspotProxy 	= new hotspotGeoProxy( hotspotProxyCallback, CONFIG.hot, geo );
+			var allhotspotProxy = new hotspotGeoProxy( allhotspotProxyCallback, null, geo );
+
+		}
+
+		J50Npi.getJSON( allhotspotProxy.url, allhotspotProxy.data, allhotspotProxy.callback );
+
 		coldspotter.dom 				= {};
 		coldspotter.dom.hotspotsHTML 	= document.getElementById( "coldspotter-hotspots" );
 		coldspotter.dom.warmspotsHTML 	= document.getElementById( "coldspotter-warmspots" );
@@ -112,167 +284,8 @@ window.onload = function() {
 		coldspotter.dom.suggestHTML 	= document.getElementById( "coldspotter-suggest" );
 		coldspotter.dom.suggestHTMLH1 	= document.getElementById( "coldspotter-summary-h1" );
 
-		allHotspots.callback = function( results ) {
-
-			allHotspots.results = results;
-
-			J50Npi.getJSON( hotspots.url, hotspots.data, hotspots.callback );
-
-		}
-
-		J50Npi.getJSON( allHotspots.url, allHotspots.data, allHotspots.callback );
-
 	};
 
 	navigator.geolocation.getCurrentPosition( geocallback );
-
-	coolspots.callback 				= function( coolspotResults ) {
-
-		var me = this;
-
-		//me.htmlResult = "<table>";
-
-		coolspotResults.forEach( function(coolspot) {
-
-			if( !! warmspots.cache[coolspot.locID] || !! hotspots.cache[coolspot.locID] )
-				return;
-
-			coolspots.cache[ coolspot.locID ] = true;
-
-			/*me.htmlResult += "<tr><td>" + coolspot.locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + coolspot.lat + "%2C" + coolspot.lng + "'>Map</a></td></tr>";*/
-
-			for( var i = 0; i < allHotspots.results.length; i++ ) {
-
-				if( allHotspots.results[i].locID == coolspot.locID )
-					allHotspots.results.splice( i, 1 );
-
-			}
-
-		});
-
-		//me.htmlResult += "</table>";
-
-		//coldspotter.dom.coolspotsHTML.innerHTML = me.htmlResult;
-
-		// start over...
-		/*me.htmlResult = "<table>";
-
-		allHotspots.results.forEach( function(coldspot) {
-
-			me.htmlResult += "<tr><td>" + coldspot.locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + coldspot.lat + "%2C" + coldspot.lng + "'>Map</a></td></tr>";
-
-		});
-
-		me.htmlResult += "</table>";
-
-		coldspotter.dom.coldspotsHTML.innerHTML = me.htmlResult;*/
-
-		var totals = {
-
-			hot: 	Object.keys(hotspots.cache).length,
-			warm: 	Object.keys(warmspots.cache).length,
-			cool: 	Object.keys(coolspots.cache).length,
-			cold: 	allHotspots.results.length
-
-		};
-
-		var allTotal 	= totals.hot + totals.warm + totals.cool + totals.cold;
-
-		var summaryTable = "";
-
-		summaryTable += "<div class='bg-red pvl white summary-result'><h1 class='title'>" + totals.hot + " hot</h1></div>";
-
-		summaryTable += "<div class='bg-orange pvl white summary-result'><h1 class='title'>" + totals.warm + " warm</h1></div>";
-
-		summaryTable += "<div class='bg-aqua pvl white summary-result'><h1 class='title'>" + totals.cool + " cool</h1></div>";
-
-		summaryTable += "<div class='bg-blue pvl white summary-result'><h1 class='title'>" + totals.cold + " cold</h1></div>";
-
-		summaryTable += "";
-
-		//summaryTable += "<div class='bg-olive pvl black' style='display:inline-block;width:100%;overflow:hidden;'><p class='title'>Total hotspots: 100</p></div>";
-
-		/*summaryTable += "<div class='bg-red pvl white' style='float:left;width:" + (( totals.hot / allTotal ) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.hot + " hot</h1></div>";
-
-		summaryTable += "<div class='bg-orange pvl white' style='float:left;width:" + ((totals.warm / allTotal) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.warm + " warm</h1></div>";
-
-		summaryTable += "<div class='bg-aqua pvl white' style='float:left;width:" + ((totals.cool / allTotal) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.cool + " cool</h1></div>";
-
-		summaryTable += "<div class='bg-blue pvl white' style='float:left;width:" + ((totals.cold / allTotal) * 100).toFixed(0) + "%;'><h1 class='title'>" + totals.cold + " cold</h1></div>";*/
-
-		coldspotter.dom.suggestHTMLH1.innerHTML		= "Summary for " + (regionCode || "20 km radius") ;
-		coldspotter.dom.summaryHTML.innerHTML 		+= summaryTable;//"<span style='color:red;'>" + Object.keys(hotspots.cache).length + " hot,</span> <span style='color:orange;'>" + Object.keys(warmspots.cache).length + " warm,</span> <span style='color:teal;'>" + Object.keys(coolspots.cache).length + " cool,</span> <span style='color:blue;'>" + allHotspots.results.length + " cold</span>";
-
-		assembleList( geodata );
-
-	}
-
-	warmspots.callback 				= function( warmspotResults ) {
-
-		var me = this;
-
-		//me.htmlResult = "<table>";
-
-		warmspotResults.forEach( function(warmspot) {
-
-			if( !! hotspots.cache[warmspot.locID] )
-				return;
-
-			warmspots.cache[ warmspot.locID ] = true;
-
-			/*me.htmlResult += "<tr><td>" + warmspot.locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + warmspot.lat + "%2C" + warmspot.lng + "'>Map</a></td></tr>";*/
-
-			for( var i = 0; i < allHotspots.results.length; i++ ) {
-
-				if( allHotspots.results[i].locID == warmspot.locID )
-					allHotspots.results.splice( i, 1 );
-
-			}
-
-		});
-
-		//me.htmlResult += "</table>";
-
-		//coldspotter.dom.warmspotsHTML.innerHTML = me.htmlResult;
-
-		J50Npi.getJSON( coolspots.url, coolspots.data, coolspots.callback );
-
-	}
-
-	hotspots.callback 				= function( hotspotResults ) { 
-
-		var me = this;
-
-		//me.htmlResult = "<table>";
-
-		hotspotResults.forEach( function(hotspot) {
-
-			hotspots.cache[ hotspot.locID ] = true;
-
-			//me.htmlResult += "<tr><td>" + hotspot.locName + "</td><td><a target='_blank' href='https://www.google.ca/maps/preview?q=" + hotspot.lat + "%2C" + hotspot.lng + "'>Map</a></td></tr>";
-
-			for( var i = 0; i < allHotspots.results.length; i++ ) {
-
-				if( allHotspots.results[i].locID == hotspot.locID )
-					allHotspots.results.splice( i, 1 );
-
-			}	
-
-		});
-
-		if( hotspotResults.length == 0 ) {
-
-			//me.htmlResult += "<tr><td>No recent reports at any hotspots!</td></tr>";
-			coldspotter.dom.alertsHTML.innerHTML += "<div class='bg-blue pvl white'><h1 class='title' id=\"coldspotter-summary-h1\">Cold County Alert!</h1><p class='thin'>No observations have been posted for hotspot locations in this county for the past week.</p></div>";
-
-		}
-
-		//me.htmlResult += "</table>";
-
-		//coldspotter.dom.hotspotsHTML.innerHTML = me.htmlResult;
-
-		J50Npi.getJSON( warmspots.url, warmspots.data, warmspots.callback );
-
-	};
 
 }
