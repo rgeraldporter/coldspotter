@@ -8,7 +8,7 @@ function $_GET( q, s )	{
 }
 
 
-var coldspotter, allHotspots, regionCode, regionType, regionUrl, geoUrl;
+var coldspotter, allHotspots;
 
 coldspotter 		= {};
 allHotspots			= {};
@@ -124,7 +124,19 @@ window.onload = function() {
 			summaryTable += "";
 
 			coldspotter.dom.suggestHTMLH1.innerHTML		= "Summary for " + ( $_GET("region") || "20 km radius" );
-			coldspotter.dom.summaryHTML.innerHTML 		+= summaryTable;
+			coldspotter.dom.summaryHTML.innerHTML 			+= summaryTable;
+
+			var summaryTable = "";
+
+			summaryTable += "<div class='bg-red pvs white summary-result-top'><h1 class='title'>" + totals.hot + "</h1></div>";
+
+			summaryTable += "<div class='bg-orange pvs white summary-result-top'><h1 class='title'>" + totals.warm + "</h1></div>";
+
+			summaryTable += "<div class='bg-aqua pvs white summary-result-top'><h1 class='title'>" + totals.cool + "</h1></div>";
+
+			summaryTable += "<div class='bg-blue pvs white summary-result-top'><h1 class='title'>" + totals.cold + "</h1></div>";
+
+			coldspotter.dom.summaryTopHTML.innerHTML 		= summaryTable;
 
 			var nearest 	= null,
 				farthest	= null,
@@ -170,13 +182,11 @@ window.onload = function() {
 
 				var distance = allHotspots.results[i].distance > 50 ? "&gt;50" : allHotspots.results[i].distance.toFixed(1);
 
-				summaryTable += "<div class='bg-blue white pvs result distance'>" + distance + "<span class='thin km'>km</span></div><a target='_blank' class='bg-green white pvs result map-link' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[i].lat + "%2C" + allHotspots.results[i].lng + "'>MAP</a><a target='_blank' class='result-link thin pvs result navy bg-white hotspot' href='http://ebird.org/ebird/canada/hotspot/" + allHotspots.results[i].locID + "'>" + allHotspots.results[i].locName + "</a>";
+				summaryTable += "<div class='bg-blue white pvs result distance'>" + distance + "<span class='thin km'>km</span></div><a target='_blank' class='bg-blue white pvs result map-link' href='https://www.google.ca/maps/preview?q=" + allHotspots.results[i].lat + "%2C" + allHotspots.results[i].lng + "'>MAP</a><a target='_blank' class='result-link thin pvs result navy bg-white hotspot' href='http://ebird.org/ebird/canada/hotspot/" + allHotspots.results[i].locID + "'>" + allHotspots.results[i].locName + "</a>";
 
 			}
 
 			coldspotter.dom.suggestHTML.innerHTML = summaryTable;
-
-
 
 		};
 
@@ -281,6 +291,7 @@ window.onload = function() {
 		coldspotter.dom.coldspotsHTML 	= document.getElementById( "coldspotter-coldspots" );
 		coldspotter.dom.alertsHTML 		= document.getElementById( "coldspotter-alerts" );
 		coldspotter.dom.summaryHTML 	= document.getElementById( "coldspotter-summary" );
+		coldspotter.dom.summaryTopHTML 	= document.getElementById( "coldspotter-summary-top" );
 		coldspotter.dom.suggestHTML 	= document.getElementById( "coldspotter-suggest" );
 		coldspotter.dom.suggestHTMLH1 	= document.getElementById( "coldspotter-summary-h1" );
 

@@ -15,7 +15,9 @@
 		
 		<title>Coldspot</title>
 
-		<link rel="stylesheet" href="colours.css">
+		<link rel="stylesheet" href="css/normalize.css">
+		<link rel="stylesheet" href="css/colors.css">
+		<link rel="stylesheet" href="css/app.css">
 		
 		<script type="application/javascript" src="jsonpi.js"></script>
 		<script type="application/javascript" src="coldspotter.js"></script>
@@ -139,13 +141,18 @@
 
 			}
 
+			a.map-link {
+
+				color: #eeeeee;
+			}
+
 			a.map-link:hover {
 
 				background-color: #01FF70;
 
 			}
 
-			.summary-result {
+			.summary-result, .summary-result-top {
 
 				display:	inline-block;
 				width: 		25%;
@@ -232,6 +239,18 @@
 
 			}
 
+
+
+			.show {
+			  transition: opacity 400ms;
+			}
+			
+			.hide {
+			  opacity: 0;
+			}
+
+
+
 		
 		</style>
 		
@@ -241,9 +260,11 @@
 
 		<p class='bg-white pvs' style='width: 100%;overflow: scroll;white-space: nowrap;position:fixed;padding:0;margin:0;top:0;left:0'><a class='btn' href="/">within 20km</a><a class='btn' href="/?region=CA-ON-HA">Hamilton</a><a  class='btn' href="/?region=CA-ON-HT">Halton</a><a  class='btn' href="/?region=CA-ON-HD">Haldimand</a><a  class='btn' href="/?region=CA-ON-NG">Niagara</a><a  class='btn' href="/?region=CA-ON-BN">Brant</a> | <a href="/?region=CA-ON-WL">Wellington</a> | <a href="/?region=CA-ON-WT">Waterloo</a> | <a href="/?region=CA-ON-HU">Huron</a> | <a href="/?region=CA-ON-BC">Bruce</a> | <a href="/?region=CA-ON-GR">Grey</a> | <a href="/?region=CA-ON-SC">Simcoe</a> | <a href="/?region=CA-ON-NF">Norfolk</a> | <a href="/?region=CA-ON&amp;type=subnational1">Ontario (all)</a> | <a href="/?region=US-NY-037">Genesse NY</a></p>
 	
-		<section class='pvfl' style='max-width: 800px;margin-left:auto;margin-right:auto;	'>
+		<section class='pvfl' style='max-width: 800px;margin-left:auto;margin-right:auto;'>
 
-		<header class="pvl bg-blue">
+		<div id="coldspotter-summary-top"></div>
+
+		<header class="pvl bg-navy">
 
 			<h1 class="f1 title tc man lh-title white">Coldspotter</h1>
 
