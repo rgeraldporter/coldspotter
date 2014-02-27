@@ -1,12 +1,13 @@
+"use strict";
+
 function $_GET( q, s )	{
 
-    s 		= s ? s : window.location.search;
-    var re 	= new RegExp( '&' + q + '(?:=([^&]*))?(?=&|$)', 'i' );
-    
-    return ( s = s.replace(/^\?/, '&').match(re) ) ? ( typeof s[1] == 'undefined' ? '' : decodeURIComponent(s[1]) ) : undefined;
-    
+	s 		= s ? s : window.location.search;
+	var re 	= new RegExp( '&' + q + '(?:=([^&]*))?(?=&|$)', 'i' );
+	
+	return ( s = s.replace(/^\?/, '&').match(re) ) ? ( typeof s[1] === 'undefined' ? '' : decodeURIComponent(s[1]) ) : undefined;
+	
 }
-
 
 var coldspotter, allHotspots;
 
@@ -25,14 +26,14 @@ var CONFIG =	{
 	cool: 			21,
 	cold: 			28
 
-}
+};
 
 var coord 			= function( data ) {
 
 	this.lat 	= data.lat;
 	this.lng 	= data.lng;
 
-}
+};
 
 var spot 		= function( data ) {
 
@@ -41,7 +42,7 @@ var spot 		= function( data ) {
 	this.id 				= data.locaID;
 	this.name 				= data.locName;
 
-}
+};
 
 var hotspotGeoProxy = function( callback, days, geo ) {
 
@@ -60,14 +61,17 @@ var hotspotGeoProxy = function( callback, days, geo ) {
 
 	this.callback 		= function( results ) {
 
-		callback( results, me )
+		callback( results, me );
 
 	};
 
-	if( !!days )
+	if( !!days ) {
+
 		this.data.back = days;
 
-}
+	}
+
+};
 
 var hotspotRegionalProxy 	= function( callback, days ) {
 
@@ -78,14 +82,17 @@ var hotspotRegionalProxy 	= function( callback, days ) {
 	this.cache 			= {};
 	this.callback 		= function( results ) {
 
-		callback( results, me )
+		callback( results, me );
 
 	};
 
-	if( !!days )
+	if( !!days ) {
+
 		this.data.back = days;
 
-}
+	}
+
+};
 
 window.onload = function() {
 
@@ -144,6 +151,8 @@ window.onload = function() {
 				distanceF	= 0;
 
 			allHotspots.results.forEach( function(coldspot) {
+
+				var lat2, lon2, lat1, lon1;
 
 				Number.prototype.toRad = function() { return this * (Math.PI / 180); };
 
